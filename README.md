@@ -1,38 +1,45 @@
-# Reto-Bankaya
+---
+title: "Portafolio: Reto de Machine Learning - Bankaya"
+description: "Modelado predictivo de riesgo crediticio y asignación dinámica de tasas de interés."
+author: "Carlos Walls Salcedo"
+date: "25 de junio de 2025"
+output: distill::distill_article
+---
 
-**Autor:** [Carlos Walls Salcedo]
-**Fecha:** 25 de junio de 2025
+## Resumen
 
-## Resumen Ejecutivo
+Este proyecto desarrolla un modelo predictivo para que **Bankaya** optimice la aprobación y el pricing de préstamos de smartphones, diferenciando entre clientes de buen y mal comportamiento crediticio. Se utiliza información interna y externa para calcular un `riesgo_score` y definir tasas de interés personalizadas.
 
-Este proyecto desarrolla un modelo predictivo para que Bankaya optimice la aprobación y el pricing de préstamos de smartphones, diferenciando entre clientes de buen y mal comportamiento crediticio. Se integra información transaccional interna con el historial crediticio externo, culminando en un `riesgo_score` y tasas de interés dinámicas personalizadas.
+---
 
-## Reporte Detallado del Proyecto
+##  Reporte Detallado del Proyecto
 
-Para una descripción completa del análisis, metodología, resultados, y conclusiones, por favor, accede al reporte final:
+Para ver el análisis completo y sus resultados:
 
-* [**Abrir Reporte ejecutivo (PDF)**](Reporte_Reto.pdf)
-* [**Ver Código Fuente (R Markdown)**](Reto_ML.Rmd)
-* [**Ver Código Fuente (HTML)**](Reto_ML.html)
-* [**Ver Código Fuente (PDF)**](<Reto Bankaya.pdf>)
-* [**Ver Resultados de tasas de interés (csv)**](final_bankaya_risk_scores_and_rates.csv)
-## Estructura del Repositorio
+-  [**Reporte ejecutivo (PDF)**](Reporte_Reto.pdf)
+-  [**Código Fuente (R Markdown)**](Reto_ML.Rmd)
+-  [**Visualización HTML**](Reto_ML.html)
+-  [**Resultados: Tasas de Interés (CSV)**](final_bankaya_risk_scores_and_rates.csv)
 
-- `Reporte_Reto.pdf`: Reporte ejecutivo generado a partir de los resultados, modelado y análisis en el R Markdown.
-- `Reto_ML.Rmd`: Código fuente completo del análisis para abrir en R.
-- `Reto_ML.html`: Código fuente completo del análisis para mayor facilidad de lectura.
-- `Reto Bankaya`: Código fuente completo del análisis para mayor facilidad de lectura.
-- `final_bankaya_risk_scores_and_rates.csv`: Base de datos con los scores obtenidos y las tasas dinámicas asignadas personalmente.
-- `README.md`: Este archivo.
+---
 
-## Cómo Reproducir el Análisis
+##  Estructura del Repositorio
 
-1.  Clona este repositorio: `git clone https://github.com/cwallss/Reto-Bankaya.git`
-2.  Abre `Reto_ML_Bankaya.Rmd` en RStudio.
-3.  Asegúrate de tener las librerías necesarias instaladas (ver inicio del Rmd).
+- `Reporte_Reto.pdf`: Análisis ejecutivo con gráficos y conclusiones.
+- `Reto_ML.Rmd`: Código reproducible del análisis.
+- `Reto_ML.html`: Análisis renderizado para exploración visual.
+- `final_bankaya_risk_scores_and_rates.csv`: Tasas de interés asignadas por cliente.
 
+---
+
+##  Cómo Reproducir el Análisis
+
+1. Clonar el repositorio:
+
+```bash
+git clone https://github.com/cwallss/Reto-Bankaya.git
 
 ## Contacto
 
-[Perfil de LinkedIn ("www.linkedin.com/in/carlos-walls-salcedo-7a96b9301")]
-[Correo("cawasa46@gmail.com")]
+[Tu Perfil de LinkedIn (`www.linkedin.com/in/carlos-walls-salcedo-7a96b9301`)]
+[Correo ("cawasa46@gmail.com")]
