@@ -14,7 +14,7 @@ Para una descripción completa del análisis, metodología, resultados, y conclu
 * [**Abrir Reporte ejecutivo (PDF)**](Reporte_Reto.pdf)
 * [**Ver Código Fuente (R Markdown)**](Reto_ML.Rmd)
 * [**Ver Código Fuente (HTML)**](Reto_ML.html)
-* [**Ver Código Fuente (PDF)**](Reto Bankaya.pdf)
+* [**Ver Código Fuente (PDF)**](<Reto Bankaya.pdf>)
 * [**Ver Resultados de tasas de interés (csv)**](final_bankaya_risk_scores_and_rates.csv)
 ## Estructura del Repositorio
 
