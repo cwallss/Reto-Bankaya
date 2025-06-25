@@ -1,10 +1,9 @@
----
+
 title: "Portafolio: Reto de Machine Learning - Bankaya"
 description: "Modelado predictivo de riesgo crediticio y asignación dinámica de tasas de interés."
 author: "Carlos Walls Salcedo"
 date: "25 de junio de 2025"
-output: distill::distill_article
----
+
 
 ## Resumen
 
