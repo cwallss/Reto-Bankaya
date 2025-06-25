@@ -38,8 +38,8 @@ Para ver el análisis completo y sus resultados:
 
 ```bash
 git clone https://github.com/cwallss/Reto-Bankaya.git
-
+```
 ## Contacto
 
-[Tu Perfil de LinkedIn (`www.linkedin.com/in/carlos-walls-salcedo-7a96b9301`)]
+[Perfil de LinkedIn (`www.linkedin.com/in/carlos-walls-salcedo-7a96b9301`)]
 [Correo ("cawasa46@gmail.com")]
