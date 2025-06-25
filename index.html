@@ -1,78 +1,117 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Reto Bankaya - Modelado de Riesgo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1a1a1a;
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    main {
       max-width: 900px;
-      margin: auto;
-      padding: 40px 20px;
-      background: #f9f9f9;
-      color: #222;
-      line-height: 1.6;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1, h2 {
-      border-bottom: 2px solid #ccc;
-      padding-bottom: 5px;
-    }
-    code {
-      background-color: #eee;
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
+
     section {
-      margin-bottom: 40px;
+      padding: 30px 20px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    h1, h2 {
+      color: #333;
+    }
+
+    a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 14px;
+      color: #999;
+      padding: 20px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Reto Bankaya</h1>
-  <p><strong>Autor:</strong> Carlos Walls Salcedo</p>
-  <p><strong>Fecha:</strong> Junio 2025</p>
+  <header>
+    <h1>Reto Bankaya</h1>
+    <p>Modelado de riesgo crediticio con aprendizaje automático</p>
+  </header>
 
-  <section>
-    <h2>Objetivo del Proyecto</h2>
-    <p>
-      El objetivo principal de este reto es desarrollar un modelo de riesgo crediticio para Bankaya, capaz de clasificar a los clientes en buenos o malos pagadores. A partir de datos internos de solicitudes de préstamo y reportes externos de historial crediticio, se busca generar un <em>riesgo_score</em> que permita asignar tasas de interés dinámicas, mejorando así la toma de decisiones en la aprobación y pricing de créditos para la adquisición de smartphones.
-    </p>
-  </section>
+  <main>
+    <section>
+      <h2>Resumen del Proyecto</h2>
+      <p>
+        Este proyecto fue desarrollado como parte de un desafío de ciencia de datos propuesto por Bankaya. El objetivo fue construir un modelo de riesgo crediticio que permita clasificar a los clientes en función de su comportamiento de pago, y asignar tasas de interés individualizadas según el riesgo estimado.
+      </p>
+      <p>
+        El enfoque combinó datos internos de solicitudes de crédito con información externa de historial crediticio para mejorar la precisión del modelo.
+      </p>
+    </section>
 
-  <section>
-    <h2>Metodología</h2>
-    <p>El proyecto se dividió en las siguientes etapas:</p>
-    <ul>
-      <li><strong>Exploración y limpieza de datos:</strong> Tratamiento de valores faltantes y negativos, codificación adecuada de variables.</li>
-      <li><strong>Análisis exploratorio:</strong> Estudio de distribuciones, correlaciones y creación de una categoría interpretativa de riesgo.</li>
-      <li><strong>Integración de historial crediticio externo:</strong> Limpieza, agregación e ingeniería de nuevas variables de riesgo por cliente.</li>
-      <li><strong>Modelado predictivo:</strong> Entrenamiento de modelos (Regresión Logística, Árbol de Decisión, Random Forest, XGBoost, Red Neuronal). Se aplicó balanceo de clases con ROSE.</li>
-      <li><strong>Asignación de tasas dinámicas:</strong> Con base en el score calculado por XGBoost, se asignaron tasas personalizadas entre el 10% y 50%.</li>
-    </ul>
-  </section>
+    <section>
+      <h2>Contenido</h2>
+      <ul>
+        <li><a href="Reto%20Bankaya.pdf" target="_blank"> Ver Reporte Completo en PDF</a></li>
+        <li><a href="https://github.com/cwallss/Reto-Bankaya" target="_blank"> Repositorio en GitHub</a></li>
+        <li><a href="#metodologia">Metodología</a></li>
+        <li><a href="#resultados">Resultados</a></li>
+      </ul>
+    </section>
 
-  <section>
-    <h2>Descripción de Datos</h2>
-    <p>Se utilizaron dos conjuntos de datos principales:</p>
-    <ul>
-      <li><strong>main_dataset:</strong> Información de cada solicitud de préstamo, incluyendo fechas, atraso máximo, historial BNPL, consultas de crédito recientes, etc.</li>
-      <li><strong>credit_reports:</strong> Historial financiero externo, con registros múltiples por cliente. Incluye tipo de crédito, uso del crédito, retrasos, saldos, entre otros.</li>
-    </ul>
-    <p>Ambos datasets se integraron para enriquecer el modelado.</p>
-  </section>
+    <section id="metodologia">
+      <h2>Metodología</h2>
+      <p>El desarrollo del modelo incluyó las siguientes etapas:</p>
+      <ul>
+        <li>Limpieza y codificación de variables del dataset principal.</li>
+        <li>Exploración visual y creación de una variable de riesgo categórica.</li>
+        <li>Incorporación de información externa de créditos históricos por cliente.</li>
+        <li>Ingeniería de características sobre uso del crédito y retrasos.</li>
+        <li>Entrenamiento de modelos: regresión logística, árbol de decisión, random forest, red neuronal y XGBoost.</li>
+        <li>Evaluación comparativa con métricas de clasificación, priorizando el <strong>recall</strong>.</li>
+      </ul>
+    </section>
 
-  <section>
-    <h2>Conclusiones</h2>
-    <ul>
-      <li>XGBoost se seleccionó como el modelo final, con un <strong>Recall del 100%</strong> en la clase positiva (malos pagadores).</li>
-      <li>La variable <code>max_days_late</code> fue la más importante para la clasificación.</li>
-      <li>La tasa de interés se asigna de forma proporcional al riesgo individual estimado.</li>
-      <li>Este enfoque permite a Bankaya optimizar su cartera de préstamos e incentivar la inclusión financiera.</li>
-    </ul>
-  </section>
+    <section id="resultados">
+      <h2>Resultados y Conclusiones</h2>
+      <ul>
+        <li>XGBoost fue el modelo con mejor desempeño, logrando un <strong>recall del 100%</strong>.</li>
+        <li>La variable <code>max_days_late</code> resultó ser la más importante en todos los modelos.</li>
+        <li>Se implementó un sistema de tasas dinámicas entre 10% y 50% en función del riesgo calculado por cliente.</li>
+        <li>El modelo permite mejorar la gestión del riesgo y optimizar la rentabilidad del portafolio de préstamos.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 Carlos Salcedo · Reto Bankaya
+  </footer>
+
+</body>
+</html>
 
 </body>
 </html>
