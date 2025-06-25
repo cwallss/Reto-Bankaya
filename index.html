@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reto Bankaya – Carlos Walls</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f9f9f9; color: #222; }
+    header { background: #09357B; color: white; padding: 2em; text-align: center; }
+    section { padding: 2em; max-width: 800px; margin: auto; }
+    footer { background: #eee; text-align: center; padding: 1em; margin-top: 2em; }
+    .autor { font-size: 1em; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reto Bankaya</h1>
+    <p class="autor">por Carlos Walls</p>
+  </header>
+
+  <section>
+    <h2> Objetivo</h2>
+    <p>Clasificar el riesgo crediticio con modelos en R.</p>
+
+    <h2> Metodología</h2>
+    <ul>
+      <li>Preprocesamiento</li>
+      <li>Modelos de clasificación</li>
+      <li>Evaluación con métricas</li>
+    </ul>
+
+    <h2> Resultados</h2>
+    <p>Se obtuvo un buen desempeño con todos los modelo pero decidí utilizar XGBoost para los scores de riesgo.</p>
+    <p><a href="docs/Informe_Reto.pdf">Ver informe completo</a></p>
+
+    <h2>Conclusiones</h2>
+    <p>En los modelos de aprendizaje automático se ve un error en la clasificación de las variables de tipo 1, mientras que para 0 prácticamente todos
+ tienen el 100% de efectividad. Seleccionamos el modelo XGBoost para continuar con los cálculos y asignación de tasas de interés
+ Este modelo proporciona a Bankaya una herramienta analítica poderosa para automatizar y mejorar las decisiones crediticias. La capacidad de
+ discernir el riesgo con mayor precisión se traducirá en:-Reducción de Morosidad: Al identificar mejor a los clientes riesgosos, se pueden rechazar solicitudes o asignar tasas que compensen el riesgo. 
+Expansión Cautelosa del Mercado: Permite aprobar clientes con un riesgo moderado a una tasa adecuada, ampliando la base de clientes de
+ forma controlada. -Mejora de la Experiencia del Cliente: Los clientes de bajo riesgo se benefician de tasas más bajas.</p>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 Carlos Walls | <a href="https://github.com/cwallss">GitHub</a></p>
+  </footer>
+</body>
+</html>
