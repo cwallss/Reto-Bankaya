@@ -1,0 +1,661 @@
+---
+title: "Reto Bankaya"
+author: "Walls Salcedo Carlos"
+date: "2025-06-24"
+output:
+  html_document:
+    self_contained: true 
+    theme: default      
+    highlight: default
+---
+
+# Primera parte
+
+### Objetivo 
+El objetivo principal de este proyecto es desarrollar un modelo de riesgo crediticio para Bankaya que permita diferenciar eficazmente entre clientes de "buen" y "mal" comportamiento crediticio. Al integrar información transaccional interna de los solicitantes con su historial crediticio externo, buscaremos generar un riesgo_score predictivo y, con base en él, proponer un sistema de tasas de interés dinámicas individualizadas. Esto facilitará la toma de decisiones de aprobación y pricing de préstamos para la compra de smartphones, optimizando la gestión de riesgos y promoviendo un crecimiento sostenible de la cartera de clientes.
+
+### Descripción de variables
+
+**Dataset Principal (main_dataset.parquet)**
+Contiene información detallada de las solicitudes de préstamos de Bankaya, incluyendo datos del cliente y su interacción con la plataforma.
+
+-customer_id:	Identificador único del cliente.
+
+-loan_id:	Identificador único del préstamo.
+
+-ACC_CREATION_DATETIME	Fecha de creación de la cuenta del cliente.
+
+-APPLICATION_DATETIME	Fecha en la que se solicitó el préstamo.
+
+LOAN_ORIGINATION_DATETIME:	Fecha en que el préstamo fue aprobado o iniciado.
+
+max_days_late:	Máximo número de días que el cliente se atrasó en un pago.
+
+target:	Variable objetivo original (0: buen comportamiento, 1: mal comportamiento).
+
+account_to_application_days:	Días entre la creación de cuenta y la solicitud del préstamo.
+
+n_sf_apps:	Número de solicitudes previas en la plataforma "SF" (no siempre presente).
+
+first_app_date:	Fecha de la primera solicitud de crédito registrada.
+
+last_app_date:	Fecha de la última solicitud de crédito registrada.
+
+n_bnpl_apps:	Número de aplicaciones tipo "Buy Now Pay Later" hechas por el cliente.
+
+n_bnpl_approved_apps:	Número de esas aplicaciones que fueron aprobadas.
+
+first_bnpl_app_date:	Fecha de la primera solicitud BNPL.
+
+last_bnpl_app_date:	Fecha de la última solicitud BNPL.
+
+n_inquiries_l3m:	Número de consultas de crédito en los últimos 3 meses.
+
+n_inquiries_l6m:	Número de consultas de crédito en los últimos 6 meses.
+
+**Dataset de Reportes de Crédito (credit_reports.parquet)**
+Este dataset contiene el historial crediticio externo de los clientes, donde cada fila representa un registro de crédito específico del cliente con diversas entidades financieras (ej. préstamos, tarjetas de crédito). Un mismo customer_id puede tener múltiples entradas en este dataset.
+
+-customer_id: Identificador único del cliente (clave de unión con main_dataset).
+
+-REPORT_DATE: Fecha de generación o actualización del reporte de crédito.
+
+-LOAN_OPENING_DATE: Fecha de apertura del crédito externo.
+
+-LOAN_CLOSING_DATE: Fecha de cierre o terminación del crédito externo.
+
+-CREDIT_TYPE: Tipo de crédito (ej., tarjeta de crédito, préstamo personal, hipoteca).
+
+-PAYMENT_FREQUENCY: Frecuencia de los pagos de este crédito (ej., mensual, semanal).
+
+-MAX_CREDIT: Monto máximo de crédito aprobado para esta línea de crédito.
+
+-CREDIT_LIMIT: Límite de crédito asignado para esta línea de crédito.
+
+-PAYMENT_AMOUNT: Monto del pago más reciente registrado.
+
+-CURRENT_BALANCE: Saldo actual pendiente de pago en esta línea de crédito.
+
+-BALANCE_DUE: Monto total vencido o adeudado.
+
+-BALANCE_DUE_WORST_DELAY: Monto máximo que estuvo vencido o adeudado en el peor momento de atraso.
+
+-DELAYED_PAYMENTS: Número de pagos que el cliente ha atrasado en esta cuenta.
+
+-WORST_DELAY: El peor número de días de atraso registrado para este crédito.
+
+-WORST_DELAY_DATE: Fecha en que se registró el peor atraso.
+
+-TOTAL_PAYMENTS: Número total de pagos realizados para esta cuenta.
+
+-TOTAL_REPORTED_PAYMENTS: Número total de pagos reportados a las agencias de crédito.
+
+-UPDATE_DATE: Fecha de la última actualización de este registro de crédito.
+
+-LAST_PURCHASE_DATE: Fecha de la última compra o disposición de crédito.
+
+-LAST_PAYMENT_DATE: Fecha del último pago registrado.
+
+```{r libraries, message=FALSE, warning=FALSE}
+# Librerías necesarias
+library(arrow)
+library(rpart)     # Para Árboles de Decisión
+library(rpart.plot)# Para visualizar Árboles de Decisión
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(corrplot)
+library(DT)
+library(caret)
+library(ROSE) # Para balancear clases
+library(randomForest)
+library(xgboost)
+library(GGally)
+library(e1071) # Para SVM
+library(nnet) # Para Red Neuronal
+library(MLmetrics)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(lubridate) # Para manejo de fechas en df2
+library(janitor)   # Para limpieza de nombres de columnas en df2
+library(tidyverse) # Colección de paquetes, ya tienes algunos individuales pero lo incluyo por si acaso
+```
+
+Importamos la base de datos con su respectivo summary y visualización de las primeras filas
+
+```{r}
+df <- read_parquet("C:/Users/DELL/Downloads/main_dataset.parquet")
+print(head(df))
+print(summary(df))
+```
+En el resumen podemos observar que la variable max_days_late tiene valores negativos, dado que tener un valor negativo representa que se pagó antes de llegar al retraso se modificarán por 0 (No hay existencia de retraso).
+
+
+Revisamos la cantidad de valores faltantes por columna 
+```{r}
+colSums(is.na(df))
+```
+
+Tenemos que para:
+
+- n_sf_apps, first_app_date, last_app_date
+
+Valores faltantes: 7,648 representa más del 50% del total.
+
+Interpretación: Estos campos se relacionan con las solicitudes previas en la plataforma “SF”. Los valores faltantes indican que esas personas nunca han realizado una solicitud de crédito previa en esa plataforma. Por tanto:
+
+n_sf_apps = NA significa cero solicitudes previas.
+
+first_app_date y last_app_date son NA porque no hay fechas que registrar.
+
+Se reemplazarán los NA por 0 en n_sf_apps
+
+
+- n_bnpl_apps, n_bnpl_approved_apps, first_bnpl_app_date, last_bnpl_app_date
+
+Valores faltantes: 5,715 casos.
+
+Interpretación: Las personas con valores faltantes no han solicitado ni han sido aprobadas en ningún esquema BNPL anteriormente.
+Se rremplazarán los NA de n_bnpl_apps y n_bnpl_approved_apps con 0.
+
+
+- n_inquiries_l3m, n_inquiries_l6m
+Valores faltantes: 5,371 casos.
+
+Interpretación: Estas variables registran cuántas veces se ha consultado el historial crediticio del cliente en los últimos 3 y 6 meses. El valor faltante probablemente indica que no existen consultas registradas para ese cliente en ese período, lo que puede ser porque:
+
+Es un cliente nuevo (sin historial).
+Nunca ha solicitado ningún crédito anteriormente.
+También se reemplazarán con 0 los valores faltantes
+
+```{r}
+# Tratamiento de valores negativos y NA en df
+
+# Valores negativos
+df <- df %>%
+  mutate(max_days_late = ifelse(max_days_late < 0, 0, max_days_late))
+
+# Columnas donde NA significa 'cero actividad/información'
+cols_na_0 <- c("n_sf_apps", "n_bnpl_apps", "n_bnpl_approved_apps",
+               "n_inquiries_l3m", "n_inquiries_l6m")
+
+df <- df %>%
+  mutate(across(all_of(cols_na_0), ~replace_na(., 0)))
+
+# Codificación 
+# Convertir enteros a numéricos y target a factor
+df <- df %>%
+  mutate(across(where(is.integer), as.numeric), # Convertir todas las columnas enteras a numéricas
+         target = as.factor(target)) # Variable objetivo a factor
+
+print(colSums(is.na(df))) # Verificamos que no queden NAs en las columnas relevantes
+```
+Se ha verificado que no exista ningún valor faltante en las columnas necesarias para nuestra modelación
+
+## Análisis Exploratorio
+ Aquí realizaremos gráficos con su interpretación para las distribuciones, diagrama de correlación, etc. 
+
+```{r}
+# Distribución de la variable target
+ggplot(df, aes(x = target, fill = target)) +
+  geom_bar() +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Distribución de la Variable Target", x = "Target", y = "Frecuencia")
+```
+La variable target es binaria. por lo tanto sus valores solo son 0 y 1, tenemos casi 4 veces mas personas clasificadas con 0 que con 1, esto puede hablarnos de un desbalanceo.
+
+```{r}
+# Distribución de días de atraso
+ggplot(df, aes(x = max_days_late)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "black") +
+  labs(title = "Distribución de días de atraso", x = "Días de atraso", y = "Frecuencia")
+```
+Por lo general nuestros clientes no se atrasan, tenemos mas datos en primeros días de retraso que en los posteriores, aunque no sigue una distribución convencional y posiblemente existan valores considerados atípicos por la cantidad de días que tardaron, sin embargo es información relevante para nuestros modelos.
+
+```{r}
+# Boxplot de max_days_late por target
+ggplot(df, aes(x = target, y = max_days_late, fill = target)) +
+  geom_boxplot() +
+  labs(title = "Días de atraso por target", x = "Target", y = "Días de atraso")
+```
+
+Para la clasificación de cero encontramos valores atípicos, estos se encuentran entre las dos categorías, fácilmente son los que podrían generar errores de clasificación a futuro, tambien vemos que la mediana es mucho mas pequeña que la media por lo que existe asimetría fuerte en la categoría 0 (muchos valores en primeros días), a diferencia de la categoría 1 que es casi simétrica.
+
+```{r}
+# Matriz de dispersión y correlación
+ggpairs(df %>% dplyr::select(max_days_late, n_sf_apps, n_bnpl_apps, n_inquiries_l6m, target),
+              mapping = aes(color = target), title = "Matriz de dispersión y correlación")
+```
+
+En el pairplot observamos que la variable que mejor separa las categorías es la variable max_days_late, por lo que será la variable mas importante cuando creemos nuestros modelos
+
+Dado que la variable mas importate es la mencionada anteriormente, utilizaremos dicha variable para clasificar a las personas como:
+- bajo riesgo: si han tenido un retraso máximo de 3 días
+- medio: si han retrasado entre 4 y 14 días
+- alto: si se han retrasado 15 días o mas
+
+Creamos la categoría de riesgo sólo para análisis interpretativo
+```{r}
+# Creación de la categoría de riesgo
+# Esta variable es útil para la parte de tasas fijas, pero no se usará directamente en el modelo predictivo.
+df <- df %>%
+  mutate(
+    riesgo_cat = case_when( # Renombrado a riesgo_cat para evitar confusión con el score numérico
+      between(max_days_late, 0, 3) ~ "bajo",
+      between(max_days_late, 4, 14) ~ "medio",
+      max_days_late >= 15 ~ "alto"
+    ),
+    riesgo_cat = factor(riesgo_cat, levels = c("bajo", "medio", "alto"))
+  )
+
+```
+
+Visualización de categorías creadas
+```{r}
+df %>%
+  count(riesgo_cat) %>%
+  ggplot(aes(x = riesgo_cat, y = n, fill = riesgo_cat)) +
+  geom_col() +
+  labs(title = "Distribución de Riesgo por Cliente (Categoría Fija)", y = "Clientes", x = "Riesgo") +
+  theme_minimal()
+```
+Según nuestras métricas asignadas arbitrariamente esta sería la distribución de las categorías de riesgo
+
+## Parte dos
+En esta sección importaremos los datos de crédito externos, los limpiaremos, codificaremos, crearemos nuevas variables útiles con base en esta base de datos y las agruparemos para agregarlas anuestro main_dataset posteriormente, teniendo en él toda la información por cliente
+
+Importamos los datos de crédito
+```{r}
+
+df2 <- read_parquet("C:/Users/DELL/Downloads/credit_reports.parquet")
+print(head(df2))
+print(summary(df2))
+print(colSums(is.na(df2)))
+```
+## Limpieza y Tratamiento de NA datos de crédito externos
+Observamos que muchas variables tienen 89 valores faltantes, lo que nos dice que son personas sin crédito registrado, imputaremos los valores faltantes para las columnas numéricas con cero
+Nos aseguraremos que las columnas de fechas estén guardadas de esa manera
+ 
+```{r}
+
+# Eliminar observaciones sin crédito registrado (PAYMENT_FREQUENCY es un buen indicador de registro válido)
+df2 <- df2 %>%
+  filter(!is.na(PAYMENT_FREQUENCY))
+
+# Imputar valores faltantes en columnas numéricas con 0 
+cols_to_impute_0_df2 <- c("MAX_CREDIT", "CREDIT_LIMIT", "PAYMENT_AMOUNT", "CURRENT_BALANCE",
+                          "BALANCE_DUE", "BALANCE_DUE_WORST_DELAY", "DELAYED_PAYMENTS",
+                          "WORST_DELAY", "TOTAL_PAYMENTS", "TOTAL_REPORTED_PAYMENTS")
+
+df2 <- df2 %>%
+  mutate(across(all_of(cols_to_impute_0_df2), ~replace_na(., 0)))
+
+# Convertir columnas de fecha
+date_cols_df2 <- c("LOAN_OPENING_DATE", "LOAN_CLOSING_DATE", "UPDATE_DATE",
+                   "WORST_DELAY_DATE", "REPORT_DATE", "LAST_PURCHASE_DATE",
+                   "LAST_PAYMENT_DATE")
+df2 <- df2 %>%
+  mutate(across(all_of(date_cols_df2), ~as_date(.)))
+
+print(colSums(is.na(df2)))
+
+```
+Únicamente nos quedan valores faltantes en las columnas de fecha, cada una con diferente cantidad de valores pero no podemos borrar las filas con esas ausencias, ya que perderíamos mucha información relevante
+
+## Ingeniería de datos
+En esta sección crearemos nuevas variables útiles para las características de riesgo externo, en caso de crear algún NA reemplazará por cero
+
+```{r}
+# Ingeniería de Variables en df2
+df2 <- df2 %>%
+  mutate(
+    # Tiempo de vida del crédito en meses 
+    tiempo_credito_meses = as.numeric(interval(LOAN_OPENING_DATE, UPDATE_DATE), "months"),
+    # Uso de crédito: Saldo actual / Límite de crédito. Manejar división por cero.
+    uso_credito_pct = if_else(CREDIT_LIMIT > 0, CURRENT_BALANCE / CREDIT_LIMIT, 0),
+    # Porcentaje de pagos atrasados: Pagos atrasados / Total de pagos.
+    pagos_tarde_pct = if_else(TOTAL_PAYMENTS > 0, DELAYED_PAYMENTS / TOTAL_PAYMENTS, 0)
+  ) %>%
+  # Limitar uso_credito_pct a 1 (no puede ser más del 100%)
+  mutate(uso_credito_pct = pmin(uso_credito_pct, 1))
+
+# Reemplazamos posibles NAs
+df2 <- df2 %>%
+  mutate(across(c(tiempo_credito_meses, uso_credito_pct, pagos_tarde_pct), ~replace_na(., 0)))
+```
+
+NOTA CLAVE DEL PROBLEMA: La relación es de uno a muchos (un customer_id en main_dataset puede tener múltiples registros en credit_reports). Para usar esta información en el modelo del main_dataset (que es por loan_id, y cada loan_id tiene un customer_id), necesitamos resumir el historial de credit_reports por customer_id.
+
+## Agregación de credit_reports a nivel customer_id
+
+```{r}
+df2_aggregated <- df2 %>%
+  group_by(customer_id) %>%
+  summarise(
+    # Métricas de uso de crédito
+    mean_uso_credito_ext = mean(uso_credito_pct, na.rm = TRUE),
+    max_uso_credito_ext = max(uso_credito_pct, na.rm = TRUE),
+    
+    # Métricas de atraso
+    max_worst_delay_ext = max(WORST_DELAY, na.rm = TRUE), # Peor atraso en cualquier crédito externo
+    mean_delayed_payments_pct_ext = mean(pagos_tarde_pct, na.rm = TRUE),
+    
+    # Cantidad y tipo de créditos
+    n_external_credits = n(), # Número total de créditos externos reportados
+    n_distinct_credit_types = n_distinct(CREDIT_TYPE),
+    
+    # Historial de crédito
+    mean_tiempo_credito_meses_ext = mean(tiempo_credito_meses, na.rm = TRUE),
+    max_total_payments_ext = max(TOTAL_PAYMENTS, na.rm = TRUE),
+    
+  ) %>%
+  ungroup()
+
+# Verificamos que no haya ningún NA en la agrupación que creamos
+colSums(is.na(df2_aggregated))
+
+# Resumen
+summary(df2_aggregated)
+```
+En el summary podemos ver que tenemos 14416 clientes, el promedio de uso de crédito externo es de 21%, el promedio de máximo uso de crédito externo es de casi 90%, la mayor parte de los clientes se atrasan en los primeros días, etc.
+
+# PARTE 3: Integración de Datos y Modelado Final
+
+En esta sección se unirá la información de las bases de datos y las variables creadas por cliente según su id, crearemos unos modelos de aprendizaje automático, finalmente compararemos las métricas por modelo.
+
+```{r}
+# Unir por costumer_id
+df_final_model <- left_join(df, df2_aggregated, by = "customer_id")
+colSums(is.na(df_final_model))
+```
+Los NA significa que el cliente con ese ID no tiene datos externos, posibliemente no ha solicitado ningún crédito fuera de este negocio. Los NA serán reemplazados por cero en las variables que provienen de la base de datos de crédito
+
+```{r}
+# Reemplazamos NAs
+df_final_model <- df_final_model %>%
+  mutate(across(c(mean_uso_credito_ext, max_uso_credito_ext,
+                  max_worst_delay_ext, mean_delayed_payments_pct_ext,
+                  n_external_credits, n_distinct_credit_types,
+                  mean_tiempo_credito_meses_ext, max_total_payments_ext),
+                ~replace_na(., 0)))
+```
+
+Selección de variables para nuestro modelo de aprendizaje automático, omitiremos las variables de fecha de nuestro main_dataset
+
+```{r}
+# Incluimos las variables numéricas y la variable objetivo de nuetro nuevo dataset
+
+vars_usar_final <- c("target", "max_days_late", "n_sf_apps", "n_bnpl_apps",
+                     "n_bnpl_approved_apps", "n_inquiries_l3m", "n_inquiries_l6m",
+                     "account_to_application_days",
+                     # Nuevas variables de credit_reports agregadas
+                     "mean_uso_credito_ext", "max_uso_credito_ext",
+                     "max_worst_delay_ext", "mean_delayed_payments_pct_ext",
+                     "n_external_credits", "n_distinct_credit_types",
+                     "mean_tiempo_credito_meses_ext", "max_total_payments_ext"
+)
+
+
+df_model_final <- df_final_model %>% dplyr::select(all_of(vars_usar_final))
+df_model_final <- df_model_final %>%
+  mutate(across(where(is.integer), as.numeric))
+
+summary(df_model_final)
+
+```
+Del summary anterior llama la atención la proporción de datos en target, cero tiene una proporción mucho mayor, de nuevo hablamos de un desbalance para la costrucción del modelo de aprendizaje automático
+
+Realizamos un diagrama de correlación para evitar tener multicolinealidad perfecta, que las variables aporten lo mismo y/o afecten a nuestro modelo
+```{r}
+# Correlación de las variables del modelo final
+cor_matrix_final <- cor(dplyr::select(df_model_final, where(is.numeric)), use = "pairwise.complete.obs")
+corrplot(cor_matrix_final, method = "color", type = "upper", order = "hclust",
+         addCoef.col = "black", tl.col = "black", tl.srt = 45, number.cex = 0.7)
+```
+Las únicas variables correlacionadas fuertemente son: max_uso_crédito_ext y n_distinct_credit_types
+Sin embargo no es tan alto como para preocuparnos, se mantendrán todas las variables.
+
+Realizamos la partición en datos de entrenamiento y prueba, utilizando el 80% de los datos para entrenar el modelo
+```{r}
+# Partición en datos de entrenamiento y prueba
+set.seed(42)
+part <- createDataPartition(df_model_final$target, p = 0.8, list = FALSE)
+train <- df_model_final[part, ]
+test <- df_model_final[-part, ]
+table(train$target)
+```
+Como tenemos muchos mas datos en la clase 0 realizaremos un balanceo en nuestros datos de entrenamiento 
+```{r}
+# Balanceo con ROSE
+train_bal <- ROSE(target ~ ., data = train, seed = 42)$data
+# Verificamos el balanceo
+table(train_bal$target)
+```
+Creamos una función para los resultados de las métricas de nuestros modelos y poderlos comparar posteriormente con una tabla
+```{r}
+# Función para las métricas
+eval_metrics <- function(pred, obs, modelo) {
+  pred <- factor(pred, levels = c("0", "1"))
+  obs <- factor(obs, levels = c("0", "1"))
+  cm <- confusionMatrix(pred, obs, positive = "1")
+  f1 <- F1_Score(pred, obs, positive = "1")
+  prec <- cm$byClass["Precision"]
+  rec <- cm$byClass["Sensitivity"]
+  acc <- cm$overall["Accuracy"]
+  kappa <- cm$overall["Kappa"]
+  data.frame(Modelo = modelo, Accuracy = acc, Kappa = kappa,
+             F1 = f1, Precision = prec, Recall = rec)
+}
+resultados <- list()
+```
+
+## Regresión logística
+
+```{r}
+modelo_glm <- glm(target ~ ., data = train_bal, family = "binomial")
+pred_prob_glm <- predict(modelo_glm, newdata = test, type = "response")
+pred_glm_class <- as.factor(ifelse(pred_prob_glm > 0.7, 1, 0)) # Clasificación binaria con umbral 0.7
+res_glm <- eval_metrics(pred_glm_class, test$target, "Regresión Logística")
+print(confusionMatrix(pred_glm_class, test$target, positive = "1"))
+resultados[["Regresión Logística"]] <- res_glm
+```
+## Árbol de decisión
+
+```{r}
+# Usamos rpart para árboles de clasificación
+modelo_dt <- rpart(target ~ ., data = train_bal, method = "class",
+                   control = rpart.control(minsplit = 20, cp = 0.01)) # minsplit y cp para controlar complejidad
+pred_dt <- predict(modelo_dt, newdata = test, type = "class")
+res_dt <- eval_metrics(pred_dt, test$target, "Árbol de Decisión")
+print(confusionMatrix(pred_dt, test$target, positive = "1"))
+resultados[["Árbol de Decisión"]] <- res_dt
+
+# Visualización del Árbol de Decisión (opcional, puede ser grande)
+ rpart.plot(modelo_dt, type = 4, extra = 101, fallen.leaves = TRUE, cex = 0.7,
+            main = "Árbol de Decisión para Predicción de Riesgo")
+```
+Con el árbol de decisión verificamos que la variable más importante es mas_day_late
+
+## XGBoost
+```{r}
+
+train_x <- as.matrix(dplyr::select(train_bal, -target))
+train_y <- as.numeric(train_bal$target) - 1 # 0 y 1 para XGBoost
+dtrain <- xgb.DMatrix(data = train_x, label = train_y)
+
+# Parámetros optimizados para XGBoost (puedes ajustar más si es necesario)
+params <- list(objective = "binary:logistic",
+               eval_metric = "auc",
+               eta = 0.1,      # Tasa de aprendizaje
+               max_depth = 4,  # Profundidad máxima del árbol
+               subsample = 0.8, # Submuestreo de filas
+               colsample_bytree = 0.8 # Submuestreo de columnas
+               )
+
+xgb_model <- xgb.train(params = params, dtrain, nrounds = 150, verbose = 0) # Aumentar nrounds para mejor rendimiento
+
+# Predicciones de probabilidad en el conjunto de prueba
+test_x <- as.matrix(dplyr::select(test, -target))
+pred_prob_xgb <- predict(xgb_model, test_x)
+pred_xgb_class <- as.factor(ifelse(pred_prob_xgb > 0.5, 1, 0)) # Clasificación binaria con umbral 0.5
+
+res_xgb <- eval_metrics(pred_xgb_class, test$target, "XGBoost")
+print(confusionMatrix(pred_xgb_class, test$target, positive = "1"))
+resultados[["XGBoost"]] <- res_xgb
+```
+## Bosque aleatorio
+
+```{r}
+set.seed(42)
+modelo_rf <- randomForest(target ~ ., data = train_bal, ntree = 100, maxnodes = 80)
+pred_rf <- predict(modelo_rf, newdata = test)
+res_rf <- eval_metrics(pred_rf, test$target, "Random Forest")
+print(confusionMatrix(pred_rf, test$target, positive = "1"))
+resultados[["Random Forest"]] <- res_rf
+```
+Error OOB para bosque aleatorio
+```{r}
+# Tabla error OOB
+oob_error <- modelo_rf$err.rate[modelo_rf$ntree, "OOB"]
+cat("Error OOB final:", round(oob_error * 100, 2), "%\n")
+```
+```{r}
+plot(modelo_rf,
+     main = "Error OOB vs Número de Árboles",
+     col = c("black", "red"))
+legend("topright",
+       legend = colnames(modelo_rf$err.rate),
+       col = c("black", "red"),
+       lty = 1)
+oob_error <- modelo_rf$err.rate[modelo_rf$ntree, "OOB"]
+cat("Error OOB final:", round(oob_error * 100, 2), "%\n")
+```
+
+```{r}
+# F1 vs Número de árboles
+n_arboles <- seq(10, 120, by = 10)
+f1_scores <- sapply(n_arboles, function(n) {
+  m <- randomForest(target ~ ., data = train_bal, ntree = n)
+  pred <- predict(m, newdata = test)
+  F1_Score(pred, test$target, positive = "1")
+})
+plot(n_arboles, f1_scores, type = "b", pch = 19, col = "steelblue",
+     main = "F1 Score vs Número de Árboles", xlab = "ntree", ylab = "F1 Score")
+```
+```{r}
+# F1 vs Número de nodos
+max_nodes <- seq(5, 100, by = 10)
+f1_nodes <- sapply(max_nodes, function(depth) {
+  m <- randomForest(target ~ ., data = train_bal, ntree = 90, maxnodes = depth)
+  pred <- predict(m, newdata = test)
+  F1_Score(pred, test$target, positive = "1")
+})
+plot(max_nodes, f1_nodes, type = "b", pch = 19, col = "tomato",
+     main = "F1 Score vs Nodos Máximos", xlab = "Max Nodes", ylab = "F1 Score")
+```
+## Red Neuronal
+
+```{r}
+set.seed(42)
+nn_model <- nnet(target ~ ., data = train_bal, size = 5, decay = 0.01, maxit = 100, trace = FALSE)
+pred_nn <- predict(nn_model, test, type = "class")
+pred_nn <- factor(pred_nn, levels = c("0", "1"))
+res_nn <- eval_metrics(pred_nn, test$target, "Neural Net")
+print(confusionMatrix(pred_nn, test$target, positive = "1"))
+resultados[["NeuralNet"]] <- res_nn
+```
+## Tabla comparativa de modelos por métricas
+
+```{r}
+
+resumen <- do.call(rbind, resultados)
+DT::datatable(resumen,
+              caption = "Tabla Comparativa de Modelos (con características de external credit)",
+              options = list(pageLength = 10,  # Mostrar 10 filas por página
+                             dom = 'tip'))    
+```
+
+Todos los modelos tienen excelentes métricas, acertando el 100% de las predicciones para cero y fallando en un porcentaje mínimo para 1
+
+## Parte 4: Generación del Riesgo Score Final y Tasas de Interés
+
+Calcularemos el score de riesgo y una tasa de interés dinámica (por persona), donde las personas de mayor riesgo tendrán una tasa de interés superior. Utilizaremos el modelo XGBoost
+
+Comenzamos calculando el score de riesgo
+bajo score = bajo riesgo
+alto score = alto riesgo
+
+```{r}
+# El riesgo_score será la probabilidad de incumplimiento (target=1)
+features_for_prediction <- xgb_model$feature_names
+# Filtrar df_final_model
+data_for_prediction <- as.matrix(df_final_model %>% dplyr::select(all_of(features_for_prediction)))
+
+probabilidades_final_score <- predict(xgb_model, newdata = xgb.DMatrix(data = data_for_prediction))
+df_final_model$riesgo_score_final <- round(probabilidades_final_score, 4)
+head(df_final_model)
+
+```
+Seleccionamos los límites de las tasas de interés
+
+Mínimo 10% = Para bajo riesgo
+Máximo 50% = Para alto riesgo
+
+```{r}
+# Tasa de interés dinámica
+tasa_base <- 0.10  # Mínimo 10%
+tasa_max <- 0.50   # Máximo 50%
+
+# Cálculo dinámico de la tasa individual basado en el riesgo_score_final (probabilidad de incumplimiento)
+df_final_model <- df_final_model %>%
+  mutate(tasa_interes_dinamica = tasa_base + riesgo_score_final * (tasa_max - tasa_base))
+```
+
+Graficamos
+
+```{r}
+# Visualización: tasa vs probabilidad de riesgo
+ggplot(df_final_model, aes(x = riesgo_score_final, y = tasa_interes_dinamica)) +
+  geom_point(alpha = 0.3, color = "darkblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Tasa de interés dinámica según probabilidad de incumplimiento (Modelo Mejorado)",
+       x = "Probabilidad estimada de incumplimiento (Riesgo Score Final)", y = "Tasa de interés asignada") +
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(labels = percent) +
+  theme_minimal()
+```
+Podemos como se va asignando una tasa de interés de forma lineal dependiendo del score de riesgo
+
+
+Creamos una tabla final con los ID correspondientes, el riesgo calculado con XGBoost y la tasa de interés dinámica asignada 
+
+```{r}
+# Tabla final 
+tabla <- df_final_model %>%
+  dplyr::select(customer_id, loan_id, riesgo_score_final, tasa_interes_dinamica) %>%
+  distinct() # Asegura que no haya duplicados de customer_id-loan_id
+
+# Renombrar riesgo_score_final a riesgo_score como lo pide el entregable
+tabla <- tabla %>%
+  rename(riesgo_score = riesgo_score_final)
+
+# Mostramos un ejemplo de tabla con las primeras 100 observaciones que otorga esa semilla
+set.seed(42)
+DT::datatable(tabla %>%
+                head(100) %>%
+                mutate(across(c(riesgo_score, tasa_interes_dinamica), ~ round(.x, 3))),
+              caption = "Ejemplos de Riesgo Score y Tasa de Interés Dinámica por Préstamo (Árbol de Decisión)",
+              options = list(pageLength = 10,
+                             dom = 'tip'))
+```
+
+## Conclusión: 
+En los modelos de aprendizaje automático se ve un error en la clasificación de las variables de tipo 1, mientras que para 0 prácticamente todos tienen el 100% de efectividad.
+Seleccionamos el modelo XGBoost para continuar con los cálculos y asignación de tasas de interés
+
+Este modelo proporciona a Bankaya una herramienta analítica poderosa para automatizar y mejorar las decisiones crediticias. La capacidad de discernir el riesgo con mayor precisión se traducirá en:
+
+-Reducción de Morosidad: Al identificar mejor a los clientes riesgosos, se pueden rechazar solicitudes o asignar tasas que compensen el riesgo.
+-Expansión Cautelosa del Mercado: Permite aprobar clientes con un riesgo moderado a una tasa adecuada, ampliando la base de clientes de forma controlada.
+-Mejora de la Experiencia del Cliente: Los clientes de bajo riesgo se benefician de tasas más bajas.
