@@ -18,10 +18,11 @@ Para una descripción completa del análisis, metodología, resultados, y conclu
 * [**Ver Resultados de tasas de interés (csv)**](final_bankaya_risk_scores_and_rates.csv)
 ## Estructura del Repositorio
 
-- `Reto_ML_Bankaya_Reporte.pdf`: Reporte final generado a partir del R Markdown.
-- `Reto_ML_Bankaya.Rmd`: Código fuente completo del análisis.
-- `main_dataset.parquet`: Dataset principal.
-- `credit_reports.parquet`: Dataset de reportes de crédito externos.
+- `Reporte_Reto.pdf`: Reporte ejecutivo generado a partir de los resultados, modelado y análisis en el R Markdown.
+- `Reto_ML.Rmd`: Código fuente completo del análisis para abrir en R.
+- `Reto_ML.html`: Código fuente completo del análisis para mayor facilidad de lectura.
+- `Reto Bankaya`: Código fuente completo del análisis para mayor facilidad de lectura.
+- `final_bankaya_risk_scores_and_rates.csv`: Base de datos con los scores obtenidos y las tasas dinámicas asignadas personalmente.
 - `README.md`: Este archivo.
 
 ## Cómo Reproducir el Análisis
@@ -33,5 +34,5 @@ Para una descripción completa del análisis, metodología, resultados, y conclu
 
 ## Contacto
 
-[Tu Perfil de LinkedIn (ej. `https://www.linkedin.com/in/tu_perfil/`)]
-[tu_email@ejemplo.com]
+[Perfil de LinkedIn ("www.linkedin.com/in/carlos-walls-salcedo-7a96b9301")]
+[Correo("cawasa46@gmail.com")]
