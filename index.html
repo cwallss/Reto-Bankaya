@@ -67,41 +67,39 @@
       <p>
         Este proyecto fue desarrollado como parte de un desafío de ciencia de datos propuesto por Bankaya. El objetivo fue construir un modelo de riesgo crediticio que permita clasificar a los clientes en función de su comportamiento de pago, y asignar tasas de interés individualizadas según el riesgo estimado.
       </p>
-      <p>
-        El enfoque combinó datos internos de solicitudes de crédito con información externa de historial crediticio para mejorar la precisión del modelo.
-      </p>
     </section>
 
     <section>
-      <h2>Contenido</h2>
+      <h2>Contenido del Proyecto</h2>
       <ul>
-        <li><a href="Reto%20Bankaya.pdf" target="_blank"> Ver Reporte Completo en PDF</a></li>
-        <li><a href="https://github.com/cwallss/Reto-Bankaya" target="_blank"> Repositorio en GitHub</a></li>
-        <li><a href="#metodologia">Metodología</a></li>
-        <li><a href="#resultados">Resultados</a></li>
+        <li><a href="Reto Bankaya.pdf" target="_blank">Reporte técnico en PDF</a></li>
+        <li><a href="Reto_ML.html" target="_blank">Análisis interactivo (HTML)</a></li>
+        <li><a href="Reto_ML.Rmd" download>Descargar código fuente (.Rmd)</a></li>
+        <li><a href="Reporte_Reto.pdf" target="_blank">Reporte ejecutivo</a></li>
+        <li><a href="final_bankaya_risk_scores_and_rates.csv" target="_blank">CSV con tasas de interés por cliente</a></li>
+        <li><a href="https://github.com/cwallss/Reto-Bankaya" target="_blank">Repositorio en GitHub</a></li>
       </ul>
     </section>
 
-    <section id="metodologia">
+    <section>
       <h2>Metodología</h2>
       <p>El desarrollo del modelo incluyó las siguientes etapas:</p>
       <ul>
-        <li>Limpieza y codificación de variables del dataset principal.</li>
-        <li>Exploración visual y creación de una variable de riesgo categórica.</li>
-        <li>Incorporación de información externa de créditos históricos por cliente.</li>
-        <li>Ingeniería de características sobre uso del crédito y retrasos.</li>
-        <li>Entrenamiento de modelos: regresión logística, árbol de decisión, random forest, red neuronal y XGBoost.</li>
-        <li>Evaluación comparativa con métricas de clasificación, priorizando el <strong>recall</strong>.</li>
+        <li>Limpieza de datos y codificación de variables.</li>
+        <li>Análisis exploratorio y creación de categorías de riesgo.</li>
+        <li>Integración de información externa de créditos por cliente.</li>
+        <li>Entrenamiento de varios modelos: regresión logística, árbol de decisión, random forest, red neuronal y XGBoost.</li>
+        <li>Evaluación mediante métricas de clasificación, con enfoque en el recall.</li>
       </ul>
     </section>
 
-    <section id="resultados">
-      <h2>Resultados y Conclusiones</h2>
+    <section>
+      <h2>Resultados</h2>
       <ul>
-        <li>XGBoost fue el modelo con mejor desempeño, logrando un <strong>recall del 100%</strong>.</li>
-        <li>La variable <code>max_days_late</code> resultó ser la más importante en todos los modelos.</li>
-        <li>Se implementó un sistema de tasas dinámicas entre 10% y 50% en función del riesgo calculado por cliente.</li>
-        <li>El modelo permite mejorar la gestión del riesgo y optimizar la rentabilidad del portafolio de préstamos.</li>
+        <li>El modelo XGBoost alcanzó un recall del 100% para la clase de riesgo alto.</li>
+        <li>Se generó un <strong>score de riesgo</strong> por persona.</li>
+        <li>Se asignaron <strong>tasas de interés dinámicas</strong> entre el 10% y el 50% basadas en la probabilidad de incumplimiento.</li>
+        <li>Los resultados están disponibles en el CSV enlazado anteriormente.</li>
       </ul>
     </section>
   </main>
@@ -109,9 +107,6 @@
   <footer>
     © 2025 Carlos Salcedo · Reto Bankaya
   </footer>
-
-</body>
-</html>
 
 </body>
 </html>
